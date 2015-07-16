@@ -12,7 +12,7 @@ List of features I added from the original library:
 
 - Added option to set Reference resistor at object instantiation
 - Corrected threshold (set/get) not consistent problem
-- added soft reconfiguration register with less option (to avoid SPI communication) and not setting again theshold
+- added soft reconfiguration register with less option (to avoid SPI communication) and not setting again threshold
 - added method to get reference resistor value `cfg_ref()`
 - added method to get only fault status register `fault_status()`
 - added method to get only configuration register `config_register()`
@@ -25,16 +25,13 @@ To find your Arduino sketchbook location folder, in Arduino IDE, go to File>Pref
 See [this tutorial][1] on Arduino libraries.
 <br/>
 
-###Possible issues
-- The library and examples are continuously improved as bugs and stability issues are discovered. Be sure to check back often for changes.
-
 ###Sample usage
-- [Read_Temperature][3] Basic reading temperature and serial display 
+- [Read_Temperature][3] Basic reading temperature and serial display (original code author)
 - [Full_Test_Oled][6] A powerfull testing sketch, the one I use to test my boards, It has full display on I2C OLED 128x64 and on Serial. Each step is detailled, it can see if breakout is connected, communication are good, and MAX31865 breakout board is well configured and see PT100/PT1000. It mainly use all library feature and use MAX31865 in 1-Shot mode.
 - [Full_Test_Serial][7] same as above but without OLED display, serial only.
 
 ##Blog dedicated post
-you will find it [there][5] in a couple of days
+you can find it on my blog [here][5]
 
 ##Why
 - When I created the MAX31865 breakout board, I needed a library to be able to read results. I then found this one which was working file. I just added on it the features I needed, thank to Original library author olewolf.
