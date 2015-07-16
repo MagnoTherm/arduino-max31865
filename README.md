@@ -50,9 +50,7 @@ Same as original,
  GNU General Public License for more details.
  
  You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.Creative Commons Attrib Share-Alike License
-https://creativecommons.org/licenses/by-sa/4.0/
-You are free to share and adapt. But you need to give attribution and use the same license to redistribute.
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ##Misc
 See news and other projects on my [blog][4] 

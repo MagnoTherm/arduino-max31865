@@ -33,14 +33,16 @@
 #include <SPI.h>
 #include <MAX31865.h>
 
-
 /**
  * The constructor for the MAX31865_RTD class registers the CS pin and
  * configures it as an output.
  *
+ * @param [in] type type of RTD .
  * @param [in] cs_pin Arduino pin selected for the CS signal.
+ * @param [in] rtd_rref reference resistor value. if omitted will be setup to default
+              400 for PT100 and 4000 for PT1000
  */
-MAX31865_RTD::MAX31865_RTD( ptd_type type, uint8_t cs_pin )
+MAX31865_RTD::MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref )
 {
   /* Set the type of PTD. */
   this->type = type;
@@ -51,9 +53,13 @@ MAX31865_RTD::MAX31865_RTD( ptd_type type, uint8_t cs_pin )
 
   /* Pull the CS pin high to avoid conflicts on SPI bus. */
   digitalWrite( this->cs_pin, HIGH );
+
+  // reference resistor value set ?
+  if (rtd_rref)
+    this->configuration_rtd_rref = rtd_rref;
+  else
+    this->configuration_rtd_rref = type == RTD_PT100 ? RTD_RREF_PT100 : RTD_RREF_PT1000;
 }
-
-
 
 /**
  * Configure the MAX31865.  The parameters correspond to Table 2 in the MAX31865
@@ -93,36 +99,66 @@ void MAX31865_RTD::configure( bool v_bias, bool conversion_mode, bool one_shot,
   this->configuration_control_bits   = control_bits;
   this->configuration_low_threshold  = low_threshold;
   this->configuration_high_threshold = high_threshold;
-
-  /* Perform an initial "reconfiguration." */
-  reconfigure( );
+  
+  /* Perform an full reconfiguration */
+  reconfigure( true );
 }
 
+/**
+ * ReConfigure the MAX31865.  The parameters correspond to Table 2 in the MAX31865
+ * datasheet.  The parameters use other control bit-field that is stored internally 
+ * in the class and change only new values
+ *
+ * @param [in] v_bias Vbias enabled (@a true) or disabled (@a false).
+ * @param [in] conversion_mode Conversion mode auto (@a true) or off (@a false).
+ * @param [in] one_shot 1-shot measurement enabled (@a true) or disabled (@a false).
+ * @param [in] fault_detection Fault detection cycle control (see Table 3 in the MAX31865
+ *             datasheet).
+*/
+void MAX31865_RTD::configure( bool v_bias, bool conversion_mode, bool one_shot, uint8_t fault_cycle )
+{
+  /* Use the stored the control bits, and set new ones only */
+  this->configuration_control_bits &= ~ (0x80 | 0x40 | 0x20 | 0b00001100);
 
+  this->configuration_control_bits |= ( v_bias ? 0x80 : 0 );
+  this->configuration_control_bits |= ( conversion_mode ? 0x40 : 0 );
+  this->configuration_control_bits |= ( one_shot ? 0x20 : 0 );
+  this->configuration_control_bits |= fault_cycle & 0b00001100;
+
+  /* Perform light configuration */
+  reconfigure( false );
+}
 
 /**
  * Reconfigure the MAX31865 by writing the stored control bits and the stored fault
  * threshold values back to the chip.
+ *
+ * @param [in] full true to send also threshold configuration
  */ 
-void MAX31865_RTD::reconfigure( )
+void MAX31865_RTD::reconfigure( bool full )
 {
+  /* Write the threshold values. */
+  if (full)
+  {
+    uint16_t threshold ;
+
+    digitalWrite( this->cs_pin, LOW );
+    SPI.transfer( 0x83 );
+    threshold = this->configuration_high_threshold ;
+    SPI.transfer( ( threshold >> 8 ) & 0x00ff );
+    SPI.transfer(   threshold        & 0x00ff );
+    threshold = this->configuration_low_threshold ;
+    SPI.transfer( ( threshold >> 8 ) & 0x00ff );
+    SPI.transfer(   threshold        & 0x00ff );
+    digitalWrite( this->cs_pin, HIGH );
+  }
+
   /* Write the configuration to the MAX31865. */
   digitalWrite( this->cs_pin, LOW );
   SPI.transfer( 0x80 );
   SPI.transfer( this->configuration_control_bits );
   digitalWrite( this->cs_pin, HIGH );
-
-  /* Write the threshold values. */
-  digitalWrite( this->cs_pin, LOW );
-  SPI.transfer( 0x83 );
-  SPI.transfer( ( this->configuration_high_threshold >> 8 ) & 0x00ff );
-  SPI.transfer(   this->configuration_high_threshold        & 0x00ff );
-  SPI.transfer( ( this->configuration_low_threshold >> 8 ) & 0x00ff );
-  SPI.transfer(   this->configuration_low_threshold        & 0x00ff );
-  digitalWrite( this->cs_pin, HIGH );
 }
-
-
 
 /**
  * Apply the Callendar-Van Dusen equation to convert the RTD resistance
@@ -144,7 +180,7 @@ void MAX31865_RTD::reconfigure( )
  * @param [in] resistance The measured RTD resistance.
  * @return Temperature in degrees Celcius.
  */
-double MAX31865_RTD::temperature( ) const
+double MAX31865_RTD::temperature() const
 {
   static const double a2   = 2.0 * RTD_B;
   static const double b_sq = RTD_A * RTD_A;
@@ -159,15 +195,13 @@ double MAX31865_RTD::temperature( ) const
   return( temperature_deg_C );
 }
 
-
-
 /**
  * Read all settings and measurements from the MAX31865 and store them
  * internally in the class.
  *
  * @return Fault status byte
  */
-uint8_t MAX31865_RTD::read_all( )
+uint8_t MAX31865_RTD::read_all()
 {
   uint16_t combined_bytes;
 
@@ -191,11 +225,11 @@ uint8_t MAX31865_RTD::read_all( )
 
   combined_bytes  = SPI.transfer( 0x00 ) << 8;
   combined_bytes |= SPI.transfer( 0x00 );
-  this->measured_high_threshold = combined_bytes >> 1;
+  this->measured_high_threshold = combined_bytes ;
 
   combined_bytes  = SPI.transfer( 0x00 ) << 8;
   combined_bytes |= SPI.transfer( 0x00 );
-  this->measured_low_threshold = combined_bytes >> 1;
+  this->measured_low_threshold = combined_bytes ;
 
   this->measured_status = SPI.transfer( 0x00 );
 
@@ -203,12 +237,50 @@ uint8_t MAX31865_RTD::read_all( )
 
   /* Reset the configuration if the measured resistance is
      zero or a fault occurred. */
-  if(    ( this->measured_resistance == 0 )
-      || ( this->measured_status != 0 ) )
-  {
-    reconfigure( );
-  }
+  if(   this->measured_resistance == 0 || this->measured_status != 0  )
+    reconfigure( true );
 
-  return( status( ) );
+  return( status() );
 }
+
+/**
+ * Read fault status
+ * internally in the class.
+ *
+ * @return Fault status byte
+ */
+uint8_t MAX31865_RTD::fault_status()
+{
+  uint8_t fault_status ;
+
+  /* Start the read operation. */
+  digitalWrite( this->cs_pin, LOW );
+  /* Tell the MAX31865 that we want to read, starting at register 7. */
+  SPI.transfer( 0x07 );
+  fault_status = this->measured_status = SPI.transfer( 0x00 );
+  digitalWrite( this->cs_pin, HIGH );
+  return( fault_status );
+}
+
+/**
+ * Read configuration register
+ * internally in the class.
+ *
+ * @return config register byte
+ */
+uint8_t MAX31865_RTD::config_register()
+{
+  uint8_t config_register ;
+
+  /* Start the read operation. */
+  digitalWrite( this->cs_pin, LOW );
+  /* Tell the MAX31865 that we want to read, starting at register 0. */
+  SPI.transfer( 0x00 );
+  config_register = this->measured_status = SPI.transfer( 0x00 );
+  digitalWrite( this->cs_pin, HIGH );
+  return( config_register );
+}
+
+
+
 

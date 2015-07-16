@@ -72,8 +72,9 @@
  * for details.  The values 400 and 4000 Ohm are recommended values for
  * the PT100 and PT1000.
  */
-#define RTD_RREF_PT100         400 /* Ohm */
-#define RTD_RREF_PT1000       4000 /* Ohm */
+#define RTD_RREF_PT100     400 /* Ohm */
+#define RTD_RREF_PT1000   4000 /* Ohm */
+
 /*
  * The RTD resistance at 0 degrees Celcius.  For the PT100, this is 100 Ohm;
  * for the PT1000, it is 1000 Ohm.
@@ -90,22 +91,25 @@ class MAX31865_RTD
 public:
   enum ptd_type { RTD_PT100, RTD_PT1000 };
 
-  MAX31865_RTD( ptd_type type, uint8_t cs_pin );
+  MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref =0 );
   void configure( bool v_bias, bool conversion_mode, bool one_shot, bool three_wire,
                   uint8_t fault_cycle, bool fault_clear, bool filter_50hz,
                   uint16_t low_threshold, uint16_t high_threshold );
+  void configure( bool v_bias, bool conversion_mode, bool one_shot, uint8_t fault_cycle );
   uint8_t read_all( );
   double temperature( ) const;
+  uint8_t fault_status( );
+  uint8_t config_register( );
   uint8_t status( ) const { return( measured_status ); }
   uint16_t low_threshold( ) const { return( measured_low_threshold ); }
   uint16_t high_threshold( ) const  { return( measured_high_threshold ); }
   uint16_t raw_resistance( ) const { return( measured_resistance ); }
   double resistance( ) const
   {
-    const double rtd_rref =
-      ( this->type == RTD_PT100 ) ? (double)RTD_RREF_PT100 : (double)RTD_RREF_PT1000;
-    return( (double)raw_resistance( ) * rtd_rref / (double)RTD_ADC_RESOLUTION );
+    return( (double)raw_resistance( ) * configuration_rtd_rref / (double)RTD_ADC_RESOLUTION );
   }
+  ptd_type cfg_type() const { return ( type ); }
+  uint16_t cfg_rref() const { return ( configuration_rtd_rref ); }
 
 private:
   /* Our configuration. */
@@ -114,7 +118,8 @@ private:
   uint8_t  configuration_control_bits;
   uint16_t configuration_low_threshold;
   uint16_t configuration_high_threshold;
-  void reconfigure( );
+  uint16_t configuration_rtd_rref;
+  void reconfigure( bool full );
 
   /* Values read from the device. */
   uint8_t  measured_configuration;
