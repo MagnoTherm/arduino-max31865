@@ -91,7 +91,7 @@ class MAX31865_RTD
 public:
   enum ptd_type { RTD_PT100, RTD_PT1000 };
 
-  MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref =0 );
+  MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref =0, uint16_t rtd_rnom = 0);
   void configure( bool v_bias, bool conversion_mode, bool one_shot, bool three_wire,
                   uint8_t fault_cycle, bool fault_clear, bool filter_50hz,
                   uint16_t low_threshold, uint16_t high_threshold );

@@ -1,9 +1,8 @@
 {
   "ExpandedNodes": [
     "",
-    "\\Examples",
-    "\\Examples\\Read_Temperature"
+    "\\Examples"
   ],
-  "SelectedNode": "\\MAX31865.cpp",
+  "SelectedNode": "\\MAX31865.h",
   "PreviewInSolutionExplorer": false
 }
