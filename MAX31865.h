@@ -119,6 +119,7 @@ private:
   uint16_t configuration_low_threshold;
   uint16_t configuration_high_threshold;
   uint16_t configuration_rtd_rref;
+  uint16_t configuration_rtd_rnom;
   void reconfigure( bool full );
 
   /* Values read from the device. */

@@ -42,7 +42,7 @@
  * @param [in] rtd_rref reference resistor value. if omitted will be setup to default
               400 for PT100 and 4000 for PT1000
  */
-MAX31865_RTD::MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref )
+MAX31865_RTD::MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref, uint16_t rtd_rnom)
 {
   /* Set the type of PTD. */
   this->type = type;
@@ -59,6 +59,11 @@ MAX31865_RTD::MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref )
     this->configuration_rtd_rref = rtd_rref;
   else
     this->configuration_rtd_rref = type == RTD_PT100 ? RTD_RREF_PT100 : RTD_RREF_PT1000;
+
+  if (rtd_rnom)
+      this->configuration_rtd_rnom = rtd_rref;
+  else
+      this->configuration_rtd_rnom = type == RTD_PT100 ? RTD_RESISTANCE_PT100 : RTD_RESISTANCE_PT1000;
 }
 
 /**
@@ -185,8 +190,7 @@ double MAX31865_RTD::temperature() const
   static const double a2   = 2.0 * RTD_B;
   static const double b_sq = RTD_A * RTD_A;
 
-  const double rtd_resistance =
-    ( this->type == RTD_PT100 ) ? RTD_RESISTANCE_PT100 : RTD_RESISTANCE_PT1000;
+  const double rtd_resistance = this->configuration_rtd_rnom;
 
   double c = 1.0 - resistance( ) / rtd_resistance;
   double D = b_sq - 2.0 * a2 * c;
