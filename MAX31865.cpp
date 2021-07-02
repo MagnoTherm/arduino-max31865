@@ -42,7 +42,7 @@
  * @param [in] rtd_rref reference resistor value. if omitted will be setup to default
               400 for PT100 and 4000 for PT1000
  */
-MAX31865_RTD::MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref, uint16_t rtd_rnom)
+MAX31865_RTD::MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref, double rtd_rnom)
 {
   /* Set the type of PTD. */
   this->type = type;
