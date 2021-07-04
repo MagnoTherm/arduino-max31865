@@ -61,7 +61,7 @@ MAX31865_RTD::MAX31865_RTD( ptd_type type, uint8_t cs_pin, uint16_t rtd_rref, do
     this->configuration_rtd_rref = type == RTD_PT100 ? RTD_RREF_PT100 : RTD_RREF_PT1000;
 
   if (rtd_rnom)
-      this->configuration_rtd_rnom = rtd_rref;
+      this->configuration_rtd_rnom = rtd_rnom;
   else
       this->configuration_rtd_rnom = type == RTD_PT100 ? RTD_RESISTANCE_PT100 : RTD_RESISTANCE_PT1000;
 }
