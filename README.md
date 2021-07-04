@@ -39,5 +39,5 @@ Same as original,
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-[1] https://github.com/olewolf/arduino-max31865
-[2] https://github.com/hallard/arduino-max31865
+[1]https://github.com/olewolf/arduino-max31865
+[2]https://github.com/hallard/arduino-max31865
